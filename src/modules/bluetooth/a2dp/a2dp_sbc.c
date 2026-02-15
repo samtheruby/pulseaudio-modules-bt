@@ -768,6 +768,76 @@ static bool pa_sbc_validate_configuration(const uint8_t *selected_configuration,
     return true;
 };
 
+/* SBC XQ configuration functions - force dual channel mode with specific bitpools */
+static size_t pa_sbc_xq_select_configuration(const pa_sample_spec default_sample_spec,
+                                             const uint8_t *supported_capabilities,
+                                             const size_t capabilities_size,
+                                             void **configuration,
+                                             uint8_t xq_bitpool) {
+    a2dp_sbc_t *cap = (a2dp_sbc_t *) supported_capabilities;
+    a2dp_sbc_t *config = pa_xmalloc0(sizeof(a2dp_sbc_t));
+    pa_a2dp_freq_cap_t sbc_freq_cap, sbc_freq_table[] = {
+            {44100U, SBC_SAMPLING_FREQ_44100},
+            {48000U, SBC_SAMPLING_FREQ_48000}
+    };
+
+    if (capabilities_size != sizeof(a2dp_sbc_t))
+        return 0;
+
+    /* SBC XQ only supports 44.1 kHz and 48 kHz */
+    if (!pa_a2dp_select_cap_frequency(cap->frequency, default_sample_spec, sbc_freq_table,
+                                     PA_ELEMENTSOF(sbc_freq_table), &sbc_freq_cap)) {
+        pa_xfree(config);
+        return 0;
+    }
+
+    config->frequency = sbc_freq_cap.cap;
+
+    /* Force Dual Channel mode for SBC XQ */
+    if (cap->channel_mode & SBC_CHANNEL_MODE_DUAL_CHANNEL)
+        config->channel_mode = SBC_CHANNEL_MODE_DUAL_CHANNEL;
+    else {
+        pa_log_warn("Device doesn't support Dual Channel mode, SBC XQ not available");
+        pa_xfree(config);
+        return 0;
+    }
+
+    /* Force SBC XQ parameters */
+    config->allocation_method = SBC_ALLOCATION_LOUDNESS;
+    config->subbands = SBC_SUBBANDS_8;
+    config->block_length = SBC_BLOCK_LENGTH_16;
+    config->min_bitpool = xq_bitpool;
+    config->max_bitpool = xq_bitpool;
+
+    *configuration = config;
+
+    return sizeof(*config);
+}
+
+static size_t pa_sbc_xq_453_select_configuration(const pa_sample_spec default_sample_spec,
+                                                  const uint8_t *supported_capabilities,
+                                                  const size_t capabilities_size,
+                                                  void **configuration) {
+    return pa_sbc_xq_select_configuration(default_sample_spec, supported_capabilities,
+                                          capabilities_size, configuration, 38);
+}
+
+static size_t pa_sbc_xq_512_select_configuration(const pa_sample_spec default_sample_spec,
+                                                  const uint8_t *supported_capabilities,
+                                                  const size_t capabilities_size,
+                                                  void **configuration) {
+    return pa_sbc_xq_select_configuration(default_sample_spec, supported_capabilities,
+                                          capabilities_size, configuration, 43);
+}
+
+static size_t pa_sbc_xq_552_select_configuration(const pa_sample_spec default_sample_spec,
+                                                  const uint8_t *supported_capabilities,
+                                                  const size_t capabilities_size,
+                                                  void **configuration) {
+    return pa_sbc_xq_select_configuration(default_sample_spec, supported_capabilities,
+                                          capabilities_size, configuration, 47);
+}
+
 
 static pa_a2dp_source_t pa_sbc_source = {
         .encoder_load = pa_sbc_encoder_load,
@@ -801,6 +871,48 @@ const pa_a2dp_codec_t pa_a2dp_sbc = {
         .a2dp_source = &pa_sbc_source,
         .get_capabilities = pa_sbc_get_capabilities,
         .select_configuration = pa_sbc_select_configuration,
+        .free_capabilities = pa_sbc_free_capabilities,
+        .free_configuration = pa_sbc_free_capabilities,
+        .validate_configuration = pa_sbc_validate_configuration
+};
+
+/* SBC XQ 453 kbps variant (bitpool 38) */
+const pa_a2dp_codec_t pa_a2dp_sbc_xq_453 = {
+        .name = "SBC_XQ_453",
+        .codec = A2DP_CODEC_SBC,
+        .vendor_codec = NULL,
+        .a2dp_sink = &pa_sbc_sink,
+        .a2dp_source = &pa_sbc_source,
+        .get_capabilities = pa_sbc_get_capabilities,
+        .select_configuration = pa_sbc_xq_453_select_configuration,
+        .free_capabilities = pa_sbc_free_capabilities,
+        .free_configuration = pa_sbc_free_capabilities,
+        .validate_configuration = pa_sbc_validate_configuration
+};
+
+/* SBC XQ 512 kbps variant (bitpool 43) */
+const pa_a2dp_codec_t pa_a2dp_sbc_xq_512 = {
+        .name = "SBC_XQ_512",
+        .codec = A2DP_CODEC_SBC,
+        .vendor_codec = NULL,
+        .a2dp_sink = &pa_sbc_sink,
+        .a2dp_source = &pa_sbc_source,
+        .get_capabilities = pa_sbc_get_capabilities,
+        .select_configuration = pa_sbc_xq_512_select_configuration,
+        .free_capabilities = pa_sbc_free_capabilities,
+        .free_configuration = pa_sbc_free_capabilities,
+        .validate_configuration = pa_sbc_validate_configuration
+};
+
+/* SBC XQ 552 kbps variant (bitpool 47) */
+const pa_a2dp_codec_t pa_a2dp_sbc_xq_552 = {
+        .name = "SBC_XQ_552",
+        .codec = A2DP_CODEC_SBC,
+        .vendor_codec = NULL,
+        .a2dp_sink = &pa_sbc_sink,
+        .a2dp_source = &pa_sbc_source,
+        .get_capabilities = pa_sbc_get_capabilities,
+        .select_configuration = pa_sbc_xq_552_select_configuration,
         .free_capabilities = pa_sbc_free_capabilities,
         .free_configuration = pa_sbc_free_capabilities,
         .validate_configuration = pa_sbc_validate_configuration

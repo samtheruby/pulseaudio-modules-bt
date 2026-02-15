@@ -31,6 +31,15 @@
 #define A2DP_SBC_SRC_ENDPOINT A2DP_SOURCE_ENDPOINT "/SBC"
 #define A2DP_SBC_SNK_ENDPOINT A2DP_SINK_ENDPOINT "/SBC"
 
+#define A2DP_SBC_XQ_453_SRC_ENDPOINT A2DP_SOURCE_ENDPOINT "/SBC_XQ_453"
+#define A2DP_SBC_XQ_453_SNK_ENDPOINT A2DP_SINK_ENDPOINT "/SBC_XQ_453"
+
+#define A2DP_SBC_XQ_512_SRC_ENDPOINT A2DP_SOURCE_ENDPOINT "/SBC_XQ_512"
+#define A2DP_SBC_XQ_512_SNK_ENDPOINT A2DP_SINK_ENDPOINT "/SBC_XQ_512"
+
+#define A2DP_SBC_XQ_552_SRC_ENDPOINT A2DP_SOURCE_ENDPOINT "/SBC_XQ_552"
+#define A2DP_SBC_XQ_552_SNK_ENDPOINT A2DP_SINK_ENDPOINT "/SBC_XQ_552"
+
 #define A2DP_AAC_SRC_ENDPOINT A2DP_SOURCE_ENDPOINT "/AAC"
 #define A2DP_AAC_SNK_ENDPOINT A2DP_SINK_ENDPOINT "/AAC"
 
@@ -217,6 +226,18 @@ void pa_a2dp_codec_index_to_endpoint(pa_a2dp_codec_index_t codec_index, const ch
         *endpoint = A2DP_SBC_SNK_ENDPOINT;
     else if(codec_index == PA_A2DP_SOURCE_SBC)
         *endpoint = A2DP_SBC_SRC_ENDPOINT;
+    else if(codec_index == PA_A2DP_SINK_SBC_XQ_453)
+        *endpoint = A2DP_SBC_XQ_453_SNK_ENDPOINT;
+    else if(codec_index == PA_A2DP_SOURCE_SBC_XQ_453)
+        *endpoint = A2DP_SBC_XQ_453_SRC_ENDPOINT;
+    else if(codec_index == PA_A2DP_SINK_SBC_XQ_512)
+        *endpoint = A2DP_SBC_XQ_512_SNK_ENDPOINT;
+    else if(codec_index == PA_A2DP_SOURCE_SBC_XQ_512)
+        *endpoint = A2DP_SBC_XQ_512_SRC_ENDPOINT;
+    else if(codec_index == PA_A2DP_SINK_SBC_XQ_552)
+        *endpoint = A2DP_SBC_XQ_552_SNK_ENDPOINT;
+    else if(codec_index == PA_A2DP_SOURCE_SBC_XQ_552)
+        *endpoint = A2DP_SBC_XQ_552_SRC_ENDPOINT;
     else if(codec_index == PA_A2DP_SINK_AAC)
         *endpoint = A2DP_AAC_SNK_ENDPOINT;
     else if(codec_index == PA_A2DP_SOURCE_AAC)
@@ -240,6 +261,18 @@ void pa_a2dp_endpoint_to_codec_index(const char *endpoint, pa_a2dp_codec_index_t
         *codec_index = PA_A2DP_SINK_SBC;
     else if (streq(endpoint, A2DP_SBC_SRC_ENDPOINT))
         *codec_index = PA_A2DP_SOURCE_SBC;
+    else if (streq(endpoint, A2DP_SBC_XQ_453_SNK_ENDPOINT))
+        *codec_index = PA_A2DP_SINK_SBC_XQ_453;
+    else if (streq(endpoint, A2DP_SBC_XQ_453_SRC_ENDPOINT))
+        *codec_index = PA_A2DP_SOURCE_SBC_XQ_453;
+    else if (streq(endpoint, A2DP_SBC_XQ_512_SNK_ENDPOINT))
+        *codec_index = PA_A2DP_SINK_SBC_XQ_512;
+    else if (streq(endpoint, A2DP_SBC_XQ_512_SRC_ENDPOINT))
+        *codec_index = PA_A2DP_SOURCE_SBC_XQ_512;
+    else if (streq(endpoint, A2DP_SBC_XQ_552_SNK_ENDPOINT))
+        *codec_index = PA_A2DP_SINK_SBC_XQ_552;
+    else if (streq(endpoint, A2DP_SBC_XQ_552_SRC_ENDPOINT))
+        *codec_index = PA_A2DP_SOURCE_SBC_XQ_552;
     else if (streq(endpoint, A2DP_AAC_SNK_ENDPOINT))
         *codec_index = PA_A2DP_SINK_AAC;
     else if (streq(endpoint, A2DP_AAC_SRC_ENDPOINT))
@@ -263,6 +296,12 @@ void pa_a2dp_codec_index_to_a2dp_codec(pa_a2dp_codec_index_t codec_index, const 
         *a2dp_codec = NULL;
     else if(codec_index == PA_A2DP_SINK_SBC || codec_index == PA_A2DP_SOURCE_SBC)
         *a2dp_codec = PTR_PA_A2DP_SBC;
+    else if(codec_index == PA_A2DP_SINK_SBC_XQ_453 || codec_index == PA_A2DP_SOURCE_SBC_XQ_453)
+        *a2dp_codec = PTR_PA_A2DP_SBC_XQ_453;
+    else if(codec_index == PA_A2DP_SINK_SBC_XQ_512 || codec_index == PA_A2DP_SOURCE_SBC_XQ_512)
+        *a2dp_codec = PTR_PA_A2DP_SBC_XQ_512;
+    else if(codec_index == PA_A2DP_SINK_SBC_XQ_552 || codec_index == PA_A2DP_SOURCE_SBC_XQ_552)
+        *a2dp_codec = PTR_PA_A2DP_SBC_XQ_552;
     else if(codec_index == PA_A2DP_SINK_AAC || codec_index == PA_A2DP_SOURCE_AAC)
         *a2dp_codec = PTR_PA_A2DP_AAC;
     else if(codec_index == PA_A2DP_SINK_APTX || codec_index == PA_A2DP_SOURCE_APTX)
@@ -283,7 +322,15 @@ void pa_a2dp_a2dp_codec_to_codec_index(const pa_a2dp_codec_t *a2dp_codec, bool i
     }
     switch (a2dp_codec->codec) {
         case A2DP_CODEC_SBC:
-            *codec_index = is_a2dp_sink ? PA_A2DP_SINK_SBC : PA_A2DP_SOURCE_SBC;
+            /* Check for SBC XQ variants by pointer comparison */
+            if (a2dp_codec == PTR_PA_A2DP_SBC_XQ_453)
+                *codec_index = is_a2dp_sink ? PA_A2DP_SINK_SBC_XQ_453 : PA_A2DP_SOURCE_SBC_XQ_453;
+            else if (a2dp_codec == PTR_PA_A2DP_SBC_XQ_512)
+                *codec_index = is_a2dp_sink ? PA_A2DP_SINK_SBC_XQ_512 : PA_A2DP_SOURCE_SBC_XQ_512;
+            else if (a2dp_codec == PTR_PA_A2DP_SBC_XQ_552)
+                *codec_index = is_a2dp_sink ? PA_A2DP_SINK_SBC_XQ_552 : PA_A2DP_SOURCE_SBC_XQ_552;
+            else
+                *codec_index = is_a2dp_sink ? PA_A2DP_SINK_SBC : PA_A2DP_SOURCE_SBC;
             return;
         case A2DP_CODEC_MPEG24:
             *codec_index = is_a2dp_sink ? PA_A2DP_SINK_AAC : PA_A2DP_SOURCE_AAC;
