@@ -1125,6 +1125,31 @@ static void sink_set_volume_cb(pa_sink *s) {
 }
 
 /* Run from main thread */
+static void sink_set_volume_a2dp_cb(pa_sink *s) {
+    pa_volume_t volume;
+    struct userdata *u;
+    pa_cvolume v;
+
+    pa_assert(s);
+    pa_assert(s->core);
+
+    u = s->userdata;
+    pa_assert(u);
+    pa_assert(u->transport);
+
+    /* Apply soft volume boost for Bluetooth A2DP
+     * Use 25% boost to compensate for typical BT headphone attenuation */
+    volume = pa_cvolume_max(&s->real_volume);
+    volume = PA_MIN((pa_volume_t)(volume * 1.25), PA_VOLUME_NORM);
+
+    pa_cvolume_set(&v, s->sample_spec.channels, volume);
+    pa_sink_set_soft_volume(s, &v);
+
+    pa_log_debug("A2DP soft volume applied: %u (original: %u)",
+                 volume, pa_cvolume_max(&s->real_volume));
+}
+
+/* Run from main thread */
 static int add_sink(struct userdata *u) {
     pa_sink_new_data data;
 
@@ -1181,6 +1206,9 @@ static int add_sink(struct userdata *u) {
     if (u->profile == PA_BLUETOOTH_PROFILE_HEADSET_HEAD_UNIT || u->profile == PA_BLUETOOTH_PROFILE_HEADSET_AUDIO_GATEWAY) {
         pa_sink_set_set_volume_callback(u->sink, sink_set_volume_cb);
         u->sink->n_volume_steps = 16;
+    } else if (u->profile == PA_BLUETOOTH_PROFILE_A2DP_SINK) {
+        pa_sink_set_set_volume_callback(u->sink, sink_set_volume_a2dp_cb);
+        u->sink->flags |= PA_SINK_FLAT_VOLUME;
     }
     return 0;
 }
