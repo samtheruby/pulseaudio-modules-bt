@@ -255,7 +255,7 @@ pa_dual_encode(uint32_t timestamp, void *write_buf, size_t write_buf_size, size_
     av_frame = av_frame_alloc_func();
     av_frame->nb_samples = aptx_info->nb_samples;
     av_frame->format = aptx_info->av_codec_ctx->sample_fmt;
-    av_frame->channel_layout = aptx_info->av_codec_ctx->channel_layout;
+    av_channel_layout_default(&av_frame->ch_layout, 2);
 
     pkt = av_packet_alloc_func();
 
@@ -344,8 +344,8 @@ pa_dual_config_transport(pa_sample_spec default_sample_spec, const void *configu
 
     switch (config->channel_mode) {
         case APTX_CHANNEL_MODE_STEREO:
-            aptx_ctx->channel_layout = AV_CH_LAYOUT_STEREO;
-            aptx_ctx->channels = 2;
+            av_channel_layout_default(&aptx_ctx->ch_layout, 2);
+            aptx_ctx->ch_layout.nb_channels = 2;
             sample_spec->channels = 2;
             break;
         default:
