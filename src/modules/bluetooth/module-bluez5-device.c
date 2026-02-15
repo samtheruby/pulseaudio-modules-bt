@@ -964,6 +964,8 @@ static int add_source(struct userdata *u) {
     pa_source_new_data_set_sample_spec(&data, &u->sample_spec);
     if (u->profile == PA_BLUETOOTH_PROFILE_HEADSET_HEAD_UNIT)
         pa_proplist_sets(data.proplist, PA_PROP_DEVICE_INTENDED_ROLES, "phone");
+    else if (u->profile == PA_BLUETOOTH_PROFILE_A2DP_SOURCE)
+        pa_proplist_sets(data.proplist, PA_PROP_DEVICE_INTENDED_ROLES, "music");
 
     connect_ports(u, &data, PA_DIRECTION_INPUT);
 
@@ -1165,6 +1167,8 @@ static int add_sink(struct userdata *u) {
     pa_sink_new_data_set_sample_spec(&data, &u->sample_spec);
     if (u->profile == PA_BLUETOOTH_PROFILE_HEADSET_HEAD_UNIT)
         pa_proplist_sets(data.proplist, PA_PROP_DEVICE_INTENDED_ROLES, "phone");
+    else if (u->profile == PA_BLUETOOTH_PROFILE_A2DP_SINK)
+        pa_proplist_sets(data.proplist, PA_PROP_DEVICE_INTENDED_ROLES, "music");
 
     connect_ports(u, &data, PA_DIRECTION_OUTPUT);
 
