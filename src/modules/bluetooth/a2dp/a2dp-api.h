@@ -41,6 +41,7 @@ extern const pa_a2dp_codec_t pa_a2dp_sbc;
 extern const pa_a2dp_codec_t pa_a2dp_sbc_xq_453;
 extern const pa_a2dp_codec_t pa_a2dp_sbc_xq_512;
 extern const pa_a2dp_codec_t pa_a2dp_sbc_xq_552;
+extern const pa_a2dp_codec_t pa_a2dp_sbc_xq_730;
 extern const pa_a2dp_codec_t pa_a2dp_aac;
 extern const pa_a2dp_codec_t pa_a2dp_aptx;
 extern const pa_a2dp_codec_t pa_a2dp_aptx_hd;
@@ -50,6 +51,7 @@ extern const pa_a2dp_codec_t pa_a2dp_ldac;
 #define PTR_PA_A2DP_SBC_XQ_453 (&pa_a2dp_sbc_xq_453)
 #define PTR_PA_A2DP_SBC_XQ_512 (&pa_a2dp_sbc_xq_512)
 #define PTR_PA_A2DP_SBC_XQ_552 (&pa_a2dp_sbc_xq_552)
+#define PTR_PA_A2DP_SBC_XQ_730 (&pa_a2dp_sbc_xq_730)
 #ifdef PA_A2DP_CODEC_AAC_FDK
     #define PTR_PA_A2DP_AAC (&pa_a2dp_aac)
 #else
@@ -87,6 +89,7 @@ typedef enum pa_a2dp_codec_index {
     PA_A2DP_SINK_SBC_XQ_453,
     PA_A2DP_SINK_SBC_XQ_512,
     PA_A2DP_SINK_SBC_XQ_552,
+    PA_A2DP_SINK_SBC_XQ_730,
 #ifdef PA_A2DP_CODEC_AAC_FDK
     PA_A2DP_SINK_AAC,
 #endif
@@ -102,6 +105,7 @@ typedef enum pa_a2dp_codec_index {
     PA_A2DP_SOURCE_SBC_XQ_453,
     PA_A2DP_SOURCE_SBC_XQ_512,
     PA_A2DP_SOURCE_SBC_XQ_552,
+    PA_A2DP_SOURCE_SBC_XQ_730,
 #ifdef PA_A2DP_CODEC_AAC_FDK
     PA_A2DP_SOURCE_AAC,
 #endif

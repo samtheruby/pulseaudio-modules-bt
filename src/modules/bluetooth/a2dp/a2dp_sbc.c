@@ -838,6 +838,14 @@ static size_t pa_sbc_xq_552_select_configuration(const pa_sample_spec default_sa
                                           capabilities_size, configuration, 47);
 }
 
+static size_t pa_sbc_xq_730_select_configuration(const pa_sample_spec default_sample_spec,
+                                                  const uint8_t *supported_capabilities,
+                                                  const size_t capabilities_size,
+                                                  void **configuration) {
+    return pa_sbc_xq_select_configuration(default_sample_spec, supported_capabilities,
+                                          capabilities_size, configuration, 63);
+}
+
 
 static pa_a2dp_source_t pa_sbc_source = {
         .encoder_load = pa_sbc_encoder_load,
@@ -913,6 +921,20 @@ const pa_a2dp_codec_t pa_a2dp_sbc_xq_552 = {
         .a2dp_source = &pa_sbc_source,
         .get_capabilities = pa_sbc_get_capabilities,
         .select_configuration = pa_sbc_xq_552_select_configuration,
+        .free_capabilities = pa_sbc_free_capabilities,
+        .free_configuration = pa_sbc_free_capabilities,
+        .validate_configuration = pa_sbc_validate_configuration
+};
+
+/* SBC XQ 730 kbps variant (bitpool 63) */
+const pa_a2dp_codec_t pa_a2dp_sbc_xq_730 = {
+        .name = "SBC_XQ_730",
+        .codec = A2DP_CODEC_SBC,
+        .vendor_codec = NULL,
+        .a2dp_sink = &pa_sbc_sink,
+        .a2dp_source = &pa_sbc_source,
+        .get_capabilities = pa_sbc_get_capabilities,
+        .select_configuration = pa_sbc_xq_730_select_configuration,
         .free_capabilities = pa_sbc_free_capabilities,
         .free_configuration = pa_sbc_free_capabilities,
         .validate_configuration = pa_sbc_validate_configuration
