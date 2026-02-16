@@ -2133,9 +2133,13 @@ static int add_card(struct userdata *u) {
             profiles[0].codec_index = PA_A2DP_CODEC_INDEX_UNAVAILABLE;
         } else {
             size_t cnt;
-            pa_a2dp_codec_index_t sink_indices[] = {PA_A2DP_SOURCE_SBC, PA_A2DP_SOURCE_AAC, PA_A2DP_SOURCE_APTX,
+            pa_a2dp_codec_index_t sink_indices[] = {PA_A2DP_SOURCE_SBC, PA_A2DP_SOURCE_SBC_XQ_453, PA_A2DP_SOURCE_SBC_XQ_512,
+                                                    PA_A2DP_SOURCE_SBC_XQ_552, PA_A2DP_SOURCE_SBC_XQ_730,
+                                                    PA_A2DP_SOURCE_AAC, PA_A2DP_SOURCE_APTX,
                                                     PA_A2DP_SOURCE_APTX_HD, PA_A2DP_SOURCE_LDAC};
-            pa_a2dp_codec_index_t source_indices[] = {PA_A2DP_SINK_SBC, PA_A2DP_SINK_AAC, PA_A2DP_SINK_APTX,
+            pa_a2dp_codec_index_t source_indices[] = {PA_A2DP_SINK_SBC, PA_A2DP_SINK_SBC_XQ_453, PA_A2DP_SINK_SBC_XQ_512,
+                                                 PA_A2DP_SINK_SBC_XQ_552, PA_A2DP_SINK_SBC_XQ_730,
+                                                 PA_A2DP_SINK_AAC, PA_A2DP_SINK_APTX,
                                                  PA_A2DP_SINK_APTX_HD};
             pa_a2dp_codec_index_t *indices;
             if (profile == PA_BLUETOOTH_PROFILE_A2DP_SINK) {
