@@ -913,7 +913,7 @@ static size_t pa_sbc_xq_453_select_configuration(const pa_sample_spec default_sa
                                                   const size_t capabilities_size,
                                                   void **configuration) {
     return pa_sbc_xq_select_configuration(default_sample_spec, supported_capabilities,
-                                          capabilities_size, configuration, 38);
+                                          capabilities_size, configuration, 35);
 }
 
 static size_t pa_sbc_xq_512_select_configuration(const pa_sample_spec default_sample_spec,

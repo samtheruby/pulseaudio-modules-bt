@@ -1898,6 +1898,14 @@ static DBusMessage *endpoint_select_configuration(DBusConnection *conn, DBusMess
     const pa_a2dp_codec_t *a2dp_codec;
     const char * endpoint = dbus_message_get_path(m);
 
+    /* Debug logging - SelectConfiguration called */
+    FILE *debug_log = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+    if (debug_log) {
+        fprintf(debug_log, "SELECT_CONFIGURATION called for endpoint: %s\n", endpoint);
+        fflush(debug_log);
+        fclose(debug_log);
+    }
+
     pa_log_debug("selecing configuration");
     dbus_error_init(&err);
 
@@ -1916,7 +1924,22 @@ static DBusMessage *endpoint_select_configuration(DBusConnection *conn, DBusMess
     config_size = (int) a2dp_codec->select_configuration(y->core->default_sample_spec, cap, (const size_t) size, &pconf);
     if (size != config_size) {
         pa_log_error("Capabilities array has invalid size %d, %d",size, config_size);
+        FILE *debug_log2 = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+        if (debug_log2) {
+            fprintf(debug_log2, "  SELECT_CONFIGURATION FAILED for %s: size mismatch %d != %d\n",
+                    endpoint, size, config_size);
+            fflush(debug_log2);
+            fclose(debug_log2);
+        }
         goto fail;
+    }
+
+    FILE *debug_log3 = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+    if (debug_log3) {
+        fprintf(debug_log3, "  SELECT_CONFIGURATION SUCCESS for %s (codec=%s)\n",
+                endpoint, a2dp_codec->name);
+        fflush(debug_log3);
+        fclose(debug_log3);
     }
 
     pa_assert_se(r = dbus_message_new_method_return(m));
@@ -1926,6 +1949,12 @@ static DBusMessage *endpoint_select_configuration(DBusConnection *conn, DBusMess
     return r;
 
 fail:
+    FILE *debug_log4 = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+    if (debug_log4) {
+        fprintf(debug_log4, "  SELECT_CONFIGURATION FAILED for %s: general failure\n", endpoint);
+        fflush(debug_log4);
+        fclose(debug_log4);
+    }
     pa_assert_se(r = dbus_message_new_error(m, "org.bluez.Error.InvalidArguments", "Unable to select configuration"));
     return r;
 }
