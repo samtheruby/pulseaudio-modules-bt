@@ -1867,6 +1867,14 @@ static const char *a2dp_codec_index_to_description(pa_a2dp_codec_index_t codec_i
             return NULL;
         else if(codec_index == PA_A2DP_SINK_SBC)
             return "High Fidelity Capture (A2DP Source: SBC)";
+        else if(codec_index == PA_A2DP_SINK_SBC_XQ_453)
+            return "High Fidelity Capture (A2DP Source: SBC XQ 453kbps)";
+        else if(codec_index == PA_A2DP_SINK_SBC_XQ_512)
+            return "High Fidelity Capture (A2DP Source: SBC XQ 512kbps)";
+        else if(codec_index == PA_A2DP_SINK_SBC_XQ_552)
+            return "High Fidelity Capture (A2DP Source: SBC XQ 552kbps)";
+        else if(codec_index == PA_A2DP_SINK_SBC_XQ_730)
+            return "High Fidelity Capture (A2DP Source: SBC XQ 730kbps)";
         else if(codec_index == PA_A2DP_SINK_AAC)
             return "High Fidelity Capture (A2DP Source: AAC)";
         else if(codec_index == PA_A2DP_SINK_APTX)
@@ -1875,6 +1883,14 @@ static const char *a2dp_codec_index_to_description(pa_a2dp_codec_index_t codec_i
             return "High Fidelity Capture (A2DP Source: aptX HD)";
         else if(codec_index == PA_A2DP_SOURCE_SBC)
             return "High Fidelity Playback (A2DP Sink: SBC)";
+        else if(codec_index == PA_A2DP_SOURCE_SBC_XQ_453)
+            return "High Fidelity Playback (A2DP Sink: SBC XQ 453kbps)";
+        else if(codec_index == PA_A2DP_SOURCE_SBC_XQ_512)
+            return "High Fidelity Playback (A2DP Sink: SBC XQ 512kbps)";
+        else if(codec_index == PA_A2DP_SOURCE_SBC_XQ_552)
+            return "High Fidelity Playback (A2DP Sink: SBC XQ 552kbps)";
+        else if(codec_index == PA_A2DP_SOURCE_SBC_XQ_730)
+            return "High Fidelity Playback (A2DP Sink: SBC XQ 730kbps)";
         else if(codec_index == PA_A2DP_SOURCE_AAC)
             return "High Fidelity Playback (A2DP Sink: AAC)";
         else if(codec_index == PA_A2DP_SOURCE_APTX)
