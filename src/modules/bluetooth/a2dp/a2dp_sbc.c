@@ -821,12 +821,34 @@ static size_t pa_sbc_xq_select_configuration(const pa_sample_spec default_sample
             {48000U, SBC_SAMPLING_FREQ_48000}
     };
 
-    if (capabilities_size != sizeof(a2dp_sbc_t))
+    FILE *debug_log = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+    if (debug_log) {
+        fprintf(debug_log, "SELECT_CONFIGURATION called for SBC XQ bitpool %d\n", xq_bitpool);
+        fprintf(debug_log, "  Device caps: min_bitpool=%d, max_bitpool=%d, channel_mode=0x%02x\n",
+                cap->min_bitpool, cap->max_bitpool, cap->channel_mode);
+        fflush(debug_log);
+        fclose(debug_log);
+    }
+
+    if (capabilities_size != sizeof(a2dp_sbc_t)) {
+        FILE *debug_log2 = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+        if (debug_log2) {
+            fprintf(debug_log2, "  SBC XQ %d: FAILED - wrong capabilities size\n", xq_bitpool);
+            fflush(debug_log2);
+            fclose(debug_log2);
+        }
         return 0;
+    }
 
     /* SBC XQ only supports 44.1 kHz and 48 kHz */
     if (!pa_a2dp_select_cap_frequency(cap->frequency, default_sample_spec, sbc_freq_table,
                                      PA_ELEMENTSOF(sbc_freq_table), &sbc_freq_cap)) {
+        FILE *debug_log3 = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+        if (debug_log3) {
+            fprintf(debug_log3, "  SBC XQ %d: FAILED - frequency not supported\n", xq_bitpool);
+            fflush(debug_log3);
+            fclose(debug_log3);
+        }
         pa_xfree(config);
         return 0;
     }
@@ -837,6 +859,13 @@ static size_t pa_sbc_xq_select_configuration(const pa_sample_spec default_sample
     if (cap->max_bitpool < xq_bitpool) {
         pa_log_warn("Device max_bitpool=%d, SBC XQ requires bitpool=%d, not available",
                     cap->max_bitpool, xq_bitpool);
+        FILE *debug_log4 = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+        if (debug_log4) {
+            fprintf(debug_log4, "  SBC XQ %d: FAILED - device max_bitpool=%d < required %d\n",
+                    xq_bitpool, cap->max_bitpool, xq_bitpool);
+            fflush(debug_log4);
+            fclose(debug_log4);
+        }
         pa_xfree(config);
         return 0;
     }
@@ -846,6 +875,13 @@ static size_t pa_sbc_xq_select_configuration(const pa_sample_spec default_sample
         config->channel_mode = SBC_CHANNEL_MODE_DUAL_CHANNEL;
     else {
         pa_log_warn("Device doesn't support Dual Channel mode, SBC XQ not available");
+        FILE *debug_log5 = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+        if (debug_log5) {
+            fprintf(debug_log5, "  SBC XQ %d: FAILED - no dual channel support (mode=0x%02x)\n",
+                    xq_bitpool, cap->channel_mode);
+            fflush(debug_log5);
+            fclose(debug_log5);
+        }
         pa_xfree(config);
         return 0;
     }
@@ -859,6 +895,13 @@ static size_t pa_sbc_xq_select_configuration(const pa_sample_spec default_sample
 
     pa_log_info("SBC XQ bitpool %d configuration selected for device (device max_bitpool=%d)",
                 xq_bitpool, cap->max_bitpool);
+
+    FILE *debug_log6 = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+    if (debug_log6) {
+        fprintf(debug_log6, "  SBC XQ %d: SUCCESS - configuration returned\n", xq_bitpool);
+        fflush(debug_log6);
+        fclose(debug_log6);
+    }
 
     *configuration = config;
 
