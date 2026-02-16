@@ -1654,6 +1654,22 @@ const char *pa_bluetooth_a2dp_profile_to_string(pa_a2dp_codec_index_t codec_inde
         return "a2dp_source_sbc";
     else if(codec_index == PA_A2DP_SOURCE_SBC)
         return "a2dp_sink_sbc";
+    else if(codec_index == PA_A2DP_SINK_SBC_XQ_453)
+        return "a2dp_source_sbc_xq_453";
+    else if(codec_index == PA_A2DP_SOURCE_SBC_XQ_453)
+        return "a2dp_sink_sbc_xq_453";
+    else if(codec_index == PA_A2DP_SINK_SBC_XQ_512)
+        return "a2dp_source_sbc_xq_512";
+    else if(codec_index == PA_A2DP_SOURCE_SBC_XQ_512)
+        return "a2dp_sink_sbc_xq_512";
+    else if(codec_index == PA_A2DP_SINK_SBC_XQ_552)
+        return "a2dp_source_sbc_xq_552";
+    else if(codec_index == PA_A2DP_SOURCE_SBC_XQ_552)
+        return "a2dp_sink_sbc_xq_552";
+    else if(codec_index == PA_A2DP_SINK_SBC_XQ_730)
+        return "a2dp_source_sbc_xq_730";
+    else if(codec_index == PA_A2DP_SOURCE_SBC_XQ_730)
+        return "a2dp_sink_sbc_xq_730";
     else if(codec_index == PA_A2DP_SINK_AAC)
         return "a2dp_source_aac";
     else if(codec_index == PA_A2DP_SOURCE_AAC)
