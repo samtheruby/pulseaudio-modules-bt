@@ -563,6 +563,42 @@ static size_t pa_sbc_get_capabilities(void **_capabilities) {
     return sizeof(*capabilities);
 };
 
+/* SBC XQ get_capabilities - advertise specific narrow bitpool range */
+static size_t pa_sbc_xq_get_capabilities(void **_capabilities, uint8_t xq_bitpool) {
+    a2dp_sbc_t *capabilities = pa_xmalloc0(sizeof(a2dp_sbc_t));
+
+    /* SBC XQ requires Dual Channel mode */
+    capabilities->channel_mode = SBC_CHANNEL_MODE_DUAL_CHANNEL;
+    capabilities->frequency = SBC_SAMPLING_FREQ_44100 | SBC_SAMPLING_FREQ_48000;
+    capabilities->allocation_method = SBC_ALLOCATION_LOUDNESS;
+    capabilities->subbands = SBC_SUBBANDS_8;
+    capabilities->block_length = SBC_BLOCK_LENGTH_16;
+
+    /* Advertise ONLY the specific bitpool value for this XQ variant */
+    capabilities->min_bitpool = xq_bitpool;
+    capabilities->max_bitpool = xq_bitpool;
+
+    *_capabilities = capabilities;
+
+    return sizeof(*capabilities);
+};
+
+static size_t pa_sbc_xq_453_get_capabilities(void **_capabilities) {
+    return pa_sbc_xq_get_capabilities(_capabilities, 38);
+};
+
+static size_t pa_sbc_xq_512_get_capabilities(void **_capabilities) {
+    return pa_sbc_xq_get_capabilities(_capabilities, 43);
+};
+
+static size_t pa_sbc_xq_552_get_capabilities(void **_capabilities) {
+    return pa_sbc_xq_get_capabilities(_capabilities, 47);
+};
+
+static size_t pa_sbc_xq_730_get_capabilities(void **_capabilities) {
+    return pa_sbc_xq_get_capabilities(_capabilities, 63);
+};
+
 static uint8_t a2dp_default_bitpool(uint8_t freq, uint8_t mode) {
     /* These bitpool values were chosen based on the A2DP spec recommendation */
     switch (freq) {
@@ -793,6 +829,14 @@ static size_t pa_sbc_xq_select_configuration(const pa_sample_spec default_sample
 
     config->frequency = sbc_freq_cap.cap;
 
+    /* Validate device supports required bitpool for this SBC XQ variant */
+    if (cap->max_bitpool < xq_bitpool) {
+        pa_log_warn("Device max_bitpool=%d, SBC XQ requires bitpool=%d, not available",
+                    cap->max_bitpool, xq_bitpool);
+        pa_xfree(config);
+        return 0;
+    }
+
     /* Force Dual Channel mode for SBC XQ */
     if (cap->channel_mode & SBC_CHANNEL_MODE_DUAL_CHANNEL)
         config->channel_mode = SBC_CHANNEL_MODE_DUAL_CHANNEL;
@@ -808,6 +852,9 @@ static size_t pa_sbc_xq_select_configuration(const pa_sample_spec default_sample
     config->block_length = SBC_BLOCK_LENGTH_16;
     config->min_bitpool = xq_bitpool;
     config->max_bitpool = xq_bitpool;
+
+    pa_log_info("SBC XQ bitpool %d configuration selected for device (device max_bitpool=%d)",
+                xq_bitpool, cap->max_bitpool);
 
     *configuration = config;
 
@@ -891,7 +938,7 @@ const pa_a2dp_codec_t pa_a2dp_sbc_xq_453 = {
         .vendor_codec = NULL,
         .a2dp_sink = &pa_sbc_sink,
         .a2dp_source = &pa_sbc_source,
-        .get_capabilities = pa_sbc_get_capabilities,
+        .get_capabilities = pa_sbc_xq_453_get_capabilities,
         .select_configuration = pa_sbc_xq_453_select_configuration,
         .free_capabilities = pa_sbc_free_capabilities,
         .free_configuration = pa_sbc_free_capabilities,
@@ -905,7 +952,7 @@ const pa_a2dp_codec_t pa_a2dp_sbc_xq_512 = {
         .vendor_codec = NULL,
         .a2dp_sink = &pa_sbc_sink,
         .a2dp_source = &pa_sbc_source,
-        .get_capabilities = pa_sbc_get_capabilities,
+        .get_capabilities = pa_sbc_xq_512_get_capabilities,
         .select_configuration = pa_sbc_xq_512_select_configuration,
         .free_capabilities = pa_sbc_free_capabilities,
         .free_configuration = pa_sbc_free_capabilities,
@@ -919,7 +966,7 @@ const pa_a2dp_codec_t pa_a2dp_sbc_xq_552 = {
         .vendor_codec = NULL,
         .a2dp_sink = &pa_sbc_sink,
         .a2dp_source = &pa_sbc_source,
-        .get_capabilities = pa_sbc_get_capabilities,
+        .get_capabilities = pa_sbc_xq_552_get_capabilities,
         .select_configuration = pa_sbc_xq_552_select_configuration,
         .free_capabilities = pa_sbc_free_capabilities,
         .free_configuration = pa_sbc_free_capabilities,
@@ -933,7 +980,7 @@ const pa_a2dp_codec_t pa_a2dp_sbc_xq_730 = {
         .vendor_codec = NULL,
         .a2dp_sink = &pa_sbc_sink,
         .a2dp_source = &pa_sbc_source,
-        .get_capabilities = pa_sbc_get_capabilities,
+        .get_capabilities = pa_sbc_xq_730_get_capabilities,
         .select_configuration = pa_sbc_xq_730_select_configuration,
         .free_capabilities = pa_sbc_free_capabilities,
         .free_configuration = pa_sbc_free_capabilities,
