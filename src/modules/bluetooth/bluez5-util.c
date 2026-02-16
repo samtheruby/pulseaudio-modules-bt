@@ -1162,12 +1162,25 @@ static void register_endpoint_reply(DBusPendingCall *pending, void *userdata) {
     pa_assert_se(r = dbus_pending_call_steal_reply(pending));
 
     if (dbus_message_is_error(r, BLUEZ_ERROR_NOT_SUPPORTED)) {
+        FILE *debug_log = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+        if (debug_log) {
+            fprintf(debug_log, "ENDPOINT DISABLED: %s (not supported)\n", endpoint);
+            fflush(debug_log);
+            fclose(debug_log);
+        }
         pa_log_error("*** ENDPOINT DISABLED: %s (not supported in BlueZ) ***", endpoint);
         pa_log_info("Couldn't register endpoint %s because it is disabled in BlueZ", endpoint);
         goto finish;
     }
 
     if (dbus_message_get_type(r) == DBUS_MESSAGE_TYPE_ERROR) {
+        FILE *debug_log = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+        if (debug_log) {
+            fprintf(debug_log, "ENDPOINT FAILED: %s - Error: %s: %s\n", endpoint,
+                    dbus_message_get_error_name(r), pa_dbus_get_error_message(r));
+            fflush(debug_log);
+            fclose(debug_log);
+        }
         pa_log_error("*** ENDPOINT FAILED: %s - Error: %s: %s ***", endpoint,
                      dbus_message_get_error_name(r), pa_dbus_get_error_message(r));
         pa_log_error(BLUEZ_MEDIA_INTERFACE ".RegisterEndpoint() failed: %s: %s", dbus_message_get_error_name(r),
@@ -1175,6 +1188,12 @@ static void register_endpoint_reply(DBusPendingCall *pending, void *userdata) {
         goto finish;
     }
 
+    FILE *debug_log = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+    if (debug_log) {
+        fprintf(debug_log, "ENDPOINT SUCCESS: %s registered successfully\n", endpoint);
+        fflush(debug_log);
+        fclose(debug_log);
+    }
     pa_log_error("*** ENDPOINT SUCCESS: %s registered successfully ***", endpoint);
 
 finish:
@@ -1192,6 +1211,14 @@ static void register_endpoint(pa_bluetooth_discovery *y, const char *path, const
     uint8_t codec;
     pa_a2dp_codec_index_t index;
     const pa_a2dp_codec_t *a2dp_codec;
+
+    /* Direct file logging for debugging */
+    FILE *debug_log = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+    if (debug_log) {
+        fprintf(debug_log, "REGISTER_ENDPOINT: %s on adapter %s\n", endpoint, path);
+        fflush(debug_log);
+        fclose(debug_log);
+    }
 
     pa_log_error("*** REGISTER_ENDPOINT: %s on adapter %s ***", endpoint, path);
     pa_log_debug("Registering %s on adapter %s", endpoint, path);
@@ -1222,6 +1249,13 @@ static void register_endpoint(pa_bluetooth_discovery *y, const char *path, const
         if (codec == 0x00) { /* A2DP_CODEC_SBC */
             uint8_t *cap_bytes = (uint8_t *)capabilities;
             if (capabilities_size >= 4) {
+                FILE *debug_log = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+                if (debug_log) {
+                    fprintf(debug_log, "  SBC CAPS for %s: min_bitpool=%d, max_bitpool=%d\n",
+                            endpoint, cap_bytes[2], cap_bytes[3]);
+                    fflush(debug_log);
+                    fclose(debug_log);
+                }
                 pa_log_error("*** SBC CAPS for %s: min_bitpool=%d, max_bitpool=%d ***",
                             endpoint, cap_bytes[2], cap_bytes[3]);
             }
