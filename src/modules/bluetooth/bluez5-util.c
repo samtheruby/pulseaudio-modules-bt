@@ -1725,11 +1725,26 @@ static DBusMessage *endpoint_set_configuration(DBusConnection *conn, DBusMessage
 
     endpoint_path = dbus_message_get_path(m);
 
+    /* Debug logging */
+    FILE *debug_log = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+    if (debug_log) {
+        fprintf(debug_log, "SET_CONFIGURATION called for endpoint: %s\n", endpoint_path);
+        fflush(debug_log);
+        fclose(debug_log);
+    }
+
     pa_a2dp_endpoint_to_codec_index(endpoint_path, &index);
     pa_a2dp_codec_index_to_a2dp_codec(index, &a2dp_codec);
 
-    if(!a2dp_codec)
+    if(!a2dp_codec) {
+        FILE *debug_log2 = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+        if (debug_log2) {
+            fprintf(debug_log2, "  ERROR: No codec found for endpoint %s\n", endpoint_path);
+            fflush(debug_log2);
+            fclose(debug_log2);
+        }
         goto fail2;
+    }
 
     if (!dbus_message_iter_init(m, &args) || !pa_streq(dbus_message_get_signature(m), "oa{sv}")) {
         pa_log_error("Invalid signature for method SetConfiguration()");
@@ -1851,6 +1866,15 @@ static DBusMessage *endpoint_set_configuration(DBusConnection *conn, DBusMessage
     t->a2dp_sink = a2dp_sink;
     t->a2dp_source = a2dp_source;
     pa_bluetooth_transport_put(t);
+
+    /* Log transport creation */
+    FILE *debug_log3 = fopen("/tmp/pulseaudio_endpoint_debug.log", "a");
+    if (debug_log3) {
+        fprintf(debug_log3, "  TRANSPORT CREATED for endpoint %s (codec_name=%s)\n",
+                endpoint_path, a2dp_codec->name);
+        fflush(debug_log3);
+        fclose(debug_log3);
+    }
 
     pa_log_debug("Transport %s available for profile %s", t->path, pa_bluetooth_profile_to_string(t->profile));
 
