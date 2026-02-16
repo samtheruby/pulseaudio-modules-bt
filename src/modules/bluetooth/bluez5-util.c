@@ -1162,15 +1162,20 @@ static void register_endpoint_reply(DBusPendingCall *pending, void *userdata) {
     pa_assert_se(r = dbus_pending_call_steal_reply(pending));
 
     if (dbus_message_is_error(r, BLUEZ_ERROR_NOT_SUPPORTED)) {
+        pa_log_error("*** ENDPOINT DISABLED: %s (not supported in BlueZ) ***", endpoint);
         pa_log_info("Couldn't register endpoint %s because it is disabled in BlueZ", endpoint);
         goto finish;
     }
 
     if (dbus_message_get_type(r) == DBUS_MESSAGE_TYPE_ERROR) {
+        pa_log_error("*** ENDPOINT FAILED: %s - Error: %s: %s ***", endpoint,
+                     dbus_message_get_error_name(r), pa_dbus_get_error_message(r));
         pa_log_error(BLUEZ_MEDIA_INTERFACE ".RegisterEndpoint() failed: %s: %s", dbus_message_get_error_name(r),
                      pa_dbus_get_error_message(r));
         goto finish;
     }
+
+    pa_log_error("*** ENDPOINT SUCCESS: %s registered successfully ***", endpoint);
 
 finish:
     dbus_message_unref(r);
@@ -1188,6 +1193,7 @@ static void register_endpoint(pa_bluetooth_discovery *y, const char *path, const
     pa_a2dp_codec_index_t index;
     const pa_a2dp_codec_t *a2dp_codec;
 
+    pa_log_error("*** REGISTER_ENDPOINT: %s on adapter %s ***", endpoint, path);
     pa_log_debug("Registering %s on adapter %s", endpoint, path);
 
     pa_assert_se(m = dbus_message_new_method_call(BLUEZ_SERVICE, path, BLUEZ_MEDIA_INTERFACE, "RegisterEndpoint"));
@@ -1211,6 +1217,16 @@ static void register_endpoint(pa_bluetooth_discovery *y, const char *path, const
     if (pa_streq(uuid, PA_BLUETOOTH_UUID_A2DP_SOURCE) || pa_streq(uuid, PA_BLUETOOTH_UUID_A2DP_SINK)) {
         void * capabilities;
         size_t capabilities_size = a2dp_codec->get_capabilities(&capabilities);
+
+        /* Log SBC capabilities for debugging */
+        if (codec == 0x00) { /* A2DP_CODEC_SBC */
+            uint8_t *cap_bytes = (uint8_t *)capabilities;
+            if (capabilities_size >= 4) {
+                pa_log_error("*** SBC CAPS for %s: min_bitpool=%d, max_bitpool=%d ***",
+                            endpoint, cap_bytes[2], cap_bytes[3]);
+            }
+        }
+
         pa_dbus_append_basic_array_variant_dict_entry(&d, "Capabilities", DBUS_TYPE_BYTE, capabilities,
                                                       (unsigned int) capabilities_size);
         a2dp_codec->free_capabilities(&capabilities);
