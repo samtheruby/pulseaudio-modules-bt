@@ -567,14 +567,16 @@ static size_t pa_sbc_get_capabilities(void **_capabilities) {
 static size_t pa_sbc_xq_get_capabilities(void **_capabilities, uint8_t xq_bitpool) {
     a2dp_sbc_t *capabilities = pa_xmalloc0(sizeof(a2dp_sbc_t));
 
-    /* SBC XQ requires Dual Channel mode */
-    capabilities->channel_mode = SBC_CHANNEL_MODE_DUAL_CHANNEL;
+    /* Advertise all channel modes for compatibility, we'll prefer Dual Channel in select_configuration */
+    capabilities->channel_mode = SBC_CHANNEL_MODE_MONO | SBC_CHANNEL_MODE_DUAL_CHANNEL |
+                                 SBC_CHANNEL_MODE_STEREO | SBC_CHANNEL_MODE_JOINT_STEREO;
     capabilities->frequency = SBC_SAMPLING_FREQ_44100 | SBC_SAMPLING_FREQ_48000;
-    capabilities->allocation_method = SBC_ALLOCATION_LOUDNESS;
-    capabilities->subbands = SBC_SUBBANDS_8;
-    capabilities->block_length = SBC_BLOCK_LENGTH_16;
+    capabilities->allocation_method = SBC_ALLOCATION_LOUDNESS | SBC_ALLOCATION_SNR;
+    capabilities->subbands = SBC_SUBBANDS_8 | SBC_SUBBANDS_4;
+    capabilities->block_length = SBC_BLOCK_LENGTH_16 | SBC_BLOCK_LENGTH_12 |
+                                 SBC_BLOCK_LENGTH_8 | SBC_BLOCK_LENGTH_4;
 
-    /* Advertise ONLY the specific bitpool value for this XQ variant */
+    /* Advertise ONLY the specific bitpool value for this XQ variant - this is what distinguishes them */
     capabilities->min_bitpool = xq_bitpool;
     capabilities->max_bitpool = xq_bitpool;
 
