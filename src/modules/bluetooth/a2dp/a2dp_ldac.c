@@ -48,6 +48,12 @@
 
 #define LDAC_ABR_INTERVAL_MS 5
 
+/* With adaptive bit rate a stream starts at Standard Quality (660 kbps), as
+ * Android does (LDAC_ABR_MODE_EQMID). libldacBT_abr raises it to High Quality
+ * once the Bluetooth link has stayed steady for a few seconds, so a weak link
+ * does not stutter at 990 kbps before ABR can react. */
+#define LDAC_ABR_START_EQMID LDACBT_EQMID_SQ
+
 
 typedef struct ldac_info {
     HANDLE_LDAC_BT hLdacBt;
@@ -98,8 +104,10 @@ pa_ldac_encoder_init(pa_a2dp_source_read_cb_t read_cb, pa_a2dp_source_read_buf_f
     info->read_pcm = read_cb;
     info->read_buf_free = free_cb;
     info->eqmid = LDACBT_EQMID_HQ;
-    if(is_ldac_abr_loaded())
+    if(is_ldac_abr_loaded()) {
+        info->eqmid = LDAC_ABR_START_EQMID;
         info->enable_abr = true;
+    }
     info->force_pa_fmt = PA_SAMPLE_INVALID;
 
     info->abr_t1 = LDAC_ABR_THRESHOLD_SAFETY_FOR_HQSQ;
@@ -138,8 +146,10 @@ static int pa_ldac_update_user_config(pa_proplist *user_config, void **codec_dat
         } else if (streq(ldac_eqmid_str, "auto") ||
                    streq(ldac_eqmid_str, "abr")) {
             i->eqmid = LDACBT_EQMID_HQ;
-            if(is_ldac_abr_loaded())
+            if(is_ldac_abr_loaded()) {
+                i->eqmid = LDAC_ABR_START_EQMID;
                 i->enable_abr = true;
+            }
             ret++;
         } else {
             pa_log("ldac_eqmid parameter must be either hq, sq, mq, or auto/abr (found %s)", ldac_eqmid_str);
@@ -414,7 +424,9 @@ pa_ldac_config_transport(pa_sample_spec default_sample_spec, const void *configu
             pa_assert_not_reached();
     }
 
-    switch (ldac_info->eqmid) {
+    /* ABR may raise the quality to HQ mid-stream, so size blocks for HQ frames
+     * whatever quality the stream starts at. */
+    switch (ldac_info->enable_abr ? LDACBT_EQMID_HQ : ldac_info->eqmid) {
         case LDACBT_EQMID_HQ:
             ldac_info->ldac_frame_size = 330;
             break;
