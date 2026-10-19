@@ -300,7 +300,7 @@ static void bluez5_sep_set_configuration_reply(DBusPendingCall *pending, void *u
     pa_xfree(data);
 }
 
-static void bluez5_sep_set_configuration(pa_bluetooth_discovery *y, const char *path, const char *endpoint,
+static pa_dbus_pending *bluez5_sep_set_configuration(pa_bluetooth_discovery *y, const char *path, const char *endpoint,
                                          uint8_t *capabilities, size_t capabilities_size, void (*cb)(bool, void *),
                                          void *cb_data) {
     DBusMessage *m;
@@ -327,21 +327,39 @@ static void bluez5_sep_set_configuration(pa_bluetooth_discovery *y, const char *
     data->cb_data = cb_data;
     data->endpoint = pa_xstrdup(endpoint);
 
-    send_and_add_to_pending(y, m, bluez5_sep_set_configuration_reply, data);
+    return send_and_add_to_pending(y, m, bluez5_sep_set_configuration_reply, data);
 }
 
-void pa_bluetooth_sep_set_configuration(pa_bluetooth_stream_endpoint *sep, pa_sample_spec default_sample_spec,
-                                        void (*cb)(bool, void *), void *cb_data) {
+pa_dbus_pending *pa_bluetooth_sep_set_configuration(pa_bluetooth_stream_endpoint *sep, pa_sample_spec default_sample_spec,
+                                                    void (*cb)(bool, void *), void *cb_data) {
     const char *endpoint;
     void *config;
     size_t size;
+    pa_dbus_pending *call;
     pa_assert(sep);
     if(!sep)
-        return;
+        return NULL;
     pa_a2dp_codec_index_to_endpoint(sep->codec_index, &endpoint);
     size = sep->a2dp_codec->select_configuration(default_sample_spec, sep->config, sep->config_size, &config);
-    bluez5_sep_set_configuration(sep->device->discovery, sep->path, endpoint, config, size, cb, cb_data);
+    call = bluez5_sep_set_configuration(sep->device->discovery, sep->path, endpoint, config, size, cb, cb_data);
     sep->a2dp_codec->free_configuration(&config);
+    return call;
+}
+
+void pa_bluetooth_sep_cancel_set_configuration(pa_dbus_pending *call) {
+    pa_bluetooth_discovery *y;
+    struct sep_set_configuration_reply_data *data;
+
+    pa_assert(call);
+    pa_assert_se(y = call->context_data);
+    pa_assert_se(data = call->call_data);
+
+    PA_LLIST_REMOVE(pa_dbus_pending, y->pending, call);
+    /* Cancels the D-Bus call, so bluez5_sep_set_configuration_reply never runs. */
+    pa_dbus_pending_free(call);
+
+    pa_xfree(data->endpoint);
+    pa_xfree(data);
 }
 
 void pa_bluetooth_transport_set_state(pa_bluetooth_transport *t, pa_bluetooth_transport_state_t state) {
@@ -685,6 +703,11 @@ static void device_free(pa_bluetooth_device *d) {
     pa_assert(d);
 
     device_stop_waiting_for_profiles(d);
+
+    /* A codec switch in progress keeps the device counted as connected, so
+     * freeing the transports would not report it gone. End the switch first:
+     * the device's card is then unloaded while the device still exists. */
+    pa_bluetooth_device_set_sep_setting_configuration(d, false);
 
     for (i = 0; i < PA_BLUETOOTH_PROFILE_COUNT; i++) {
         pa_bluetooth_transport *t;
