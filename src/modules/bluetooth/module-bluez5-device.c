@@ -1278,7 +1278,7 @@ static int setup_transport(struct userdata *u) {
     }
 
     if (u->sep && u->sep->a2dp_codec && t->a2dp_codec && u->sep->a2dp_codec != t->a2dp_codec) {
-        u->device->sep_setting_configuration = true;
+        pa_bluetooth_device_set_sep_setting_configuration(u->device, true);
         pa_bluetooth_sep_set_configuration(u->sep, u->core->default_sample_spec, set_configuration_cb, u);
         return -EINPROGRESS;
     }
@@ -1988,7 +1988,12 @@ static void set_configuration_cb(bool success, void *data) {
 
     struct userdata *u = (struct userdata *) data;
 
-    u->device->sep_setting_configuration = false;
+    /* BlueZ closes the stream to reconfigure it. When that fails, it can
+     * drop the whole connection and remove the stream endpoints this card
+     * points to, so with no transport left the card is unloaded here and u
+     * is gone. */
+    if (!pa_bluetooth_device_set_sep_setting_configuration(u->device, false))
+        return;
 
     if(!success)
         goto off;

@@ -183,6 +183,7 @@ void pa_bluetooth_transport_unlink(pa_bluetooth_transport *t);
 void pa_bluetooth_transport_free(pa_bluetooth_transport *t);
 
 bool pa_bluetooth_device_any_transport_connected(const pa_bluetooth_device *d);
+bool pa_bluetooth_device_set_sep_setting_configuration(pa_bluetooth_device *d, bool setting);
 
 pa_bluetooth_stream_endpoint *pa_bluetooth_device_get_sep_by_codec_index(pa_bluetooth_device *d,
                                                                          pa_a2dp_codec_index_t codec_index);

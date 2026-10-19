@@ -529,6 +529,28 @@ bool pa_bluetooth_device_any_transport_connected(const pa_bluetooth_device *d) {
     return false;
 }
 
+/* While a stream endpoint is being configured the device counts as connected,
+ * so the transport BlueZ closes to reconfigure does not unload the device's
+ * card. Ending that has to report a connection lost in the meantime: if the
+ * reconfiguration failed and the headset dropped, nothing else will, and a
+ * card left behind keeps pointers to the stream endpoints BlueZ removed.
+ * Returns whether the device is still connected; when it is not, the
+ * connection-changed hook has run and the device's card module is unloaded. */
+bool pa_bluetooth_device_set_sep_setting_configuration(pa_bluetooth_device *d, bool setting) {
+    bool old_any_connected, new_any_connected;
+
+    pa_assert(d);
+
+    old_any_connected = pa_bluetooth_device_any_transport_connected(d);
+    d->sep_setting_configuration = setting;
+    new_any_connected = pa_bluetooth_device_any_transport_connected(d);
+
+    if (new_any_connected != old_any_connected)
+        pa_hook_fire(&d->discovery->hooks[PA_BLUETOOTH_HOOK_DEVICE_CONNECTION_CHANGED], d);
+
+    return new_any_connected;
+}
+
 static int transport_state_from_string(const char* value, pa_bluetooth_transport_state_t *state) {
     pa_assert(value);
     pa_assert(state);
