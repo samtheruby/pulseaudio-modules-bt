@@ -39,8 +39,12 @@
 #define TEST_MTU 679
 
 static bool abr_library_loaded;
+static int abr_init_result;
 static int opened_eqmid;
 static int open_count;
+/* The quality the encoder runs at: set when it is opened, changed by
+ * ldacBT_set_eqmid, and raised by ABR in the tests that simulate it. */
+static int current_eqmid;
 
 static int encoder_handle_storage;
 static int abr_handle_storage;
@@ -62,12 +66,18 @@ static int stub_handle_query(HANDLE_LDAC_BT h) {
 
 static int stub_init_handle_encode(HANDLE_LDAC_BT h, int mtu, int eqmid, int cm, LDACBT_SMPL_FMT_T fmt, int sf) {
     opened_eqmid = eqmid;
+    current_eqmid = eqmid;
     open_count++;
     return 0;
 }
 
 static int stub_set_eqmid(HANDLE_LDAC_BT h, int eqmid) {
+    current_eqmid = eqmid;
     return 0;
+}
+
+static int stub_get_eqmid(HANDLE_LDAC_BT h) {
+    return current_eqmid;
 }
 
 static int stub_alter_eqmid_priority(HANDLE_LDAC_BT h, int priority) {
@@ -76,6 +86,11 @@ static int stub_alter_eqmid_priority(HANDLE_LDAC_BT h, int priority) {
 
 static int stub_encode(HANDLE_LDAC_BT h, void *p_pcm, int *pcm_used, unsigned char *p_stream, int *stream_sz,
                        int *frame_num) {
+    /* Fails, so pa_ldac_encode returns (and logs an encoding error) right
+     * after the handle re-open that the tests look at. */
+    *pcm_used = 0;
+    *stream_sz = 0;
+    *frame_num = 0;
     return -1;
 }
 
@@ -87,7 +102,7 @@ static void stub_abr_free_handle(HANDLE_LDAC_ABR h) {
 }
 
 static int stub_abr_init(HANDLE_LDAC_ABR h, unsigned int interval_ms) {
-    return 0;
+    return abr_init_result;
 }
 
 static int stub_abr_set_thresholds(HANDLE_LDAC_ABR h, unsigned int t3, unsigned int t2, unsigned int t1) {
@@ -106,7 +121,7 @@ ldacBT_get_sampling_freq_func_t ldacBT_get_sampling_freq_func = stub_handle_quer
 ldacBT_get_bitrate_func_t ldacBT_get_bitrate_func = stub_handle_query;
 ldacBT_init_handle_encode_func_t ldacBT_init_handle_encode_func = stub_init_handle_encode;
 ldacBT_set_eqmid_func_t ldacBT_set_eqmid_func = stub_set_eqmid;
-ldacBT_get_eqmid_func_t ldacBT_get_eqmid_func = stub_handle_query;
+ldacBT_get_eqmid_func_t ldacBT_get_eqmid_func = stub_get_eqmid;
 ldacBT_alter_eqmid_priority_func_t ldacBT_alter_eqmid_priority_func = stub_alter_eqmid_priority;
 ldacBT_encode_func_t ldacBT_encode_func = stub_encode;
 ldacBT_get_error_code_func_t ldacBT_get_error_code_func = stub_handle_query;
@@ -140,22 +155,26 @@ static void stub_read_free(const void **read_buf, void *data) {
 }
 
 struct stream_start {
+    /* The quality the encoder was opened at. */
     int eqmid;
+    /* The quality it runs at once the stream is set up. */
+    int running_eqmid;
     size_t block_size;
 };
 
-/* Opens one 48 kHz stereo LDAC stream the way module-bluez5-device does.
- * ldac_eqmid is the a2dp_config option, or NULL when it is not set. */
-static struct stream_start start_stream(bool abr_loaded, const char *ldac_eqmid) {
+/* Opens one 48 kHz stereo LDAC stream the way module-bluez5-device does and
+ * returns its codec data, ready to encode. ldac_eqmid is the a2dp_config
+ * option, or NULL when it is not set. */
+static void *open_stream(bool abr_loaded, const char *ldac_eqmid, struct stream_start *result) {
     const pa_a2dp_source_t *source = pa_a2dp_ldac.a2dp_source;
     pa_sample_spec default_spec = { .format = PA_SAMPLE_S16LE, .rate = 48000, .channels = 2 };
     pa_sample_spec spec;
     a2dp_ldac_t config;
-    struct stream_start result;
     void *codec_data = NULL;
 
     abr_library_loaded = abr_loaded;
     opened_eqmid = -1;
+    current_eqmid = -1;
     open_count = 0;
 
     memset(&config, 0, sizeof(config));
@@ -171,12 +190,40 @@ static struct stream_start start_stream(bool abr_loaded, const char *ldac_eqmid)
         pa_proplist_free(user_config);
     }
     source->config_transport(default_spec, &config, sizeof(config), &spec, &codec_data);
-    source->get_block_size(TEST_MTU, &result.block_size, &codec_data);
+    source->get_block_size(TEST_MTU, &result->block_size, &codec_data);
     source->setup_stream(&codec_data);
-    result.eqmid = open_count == 1 ? opened_eqmid : -1;
+    result->eqmid = open_count == 1 ? opened_eqmid : -1;
+    result->running_eqmid = current_eqmid;
+
+    return codec_data;
+}
+
+static struct stream_start start_stream(bool abr_loaded, const char *ldac_eqmid) {
+    struct stream_start result;
+    void *codec_data = open_stream(abr_loaded, ldac_eqmid, &result);
+
+    pa_a2dp_ldac.a2dp_source->free(&codec_data);
+    return result;
+}
+
+/* Opens a stream, lets ABR take it to abr_reached, then hands the encoder a
+ * new write buffer, which makes it re-open its LDAC handle. Returns the
+ * quality it re-opens at. */
+static int reopen_after_abr(bool abr_loaded, const char *ldac_eqmid, int abr_reached) {
+    const pa_a2dp_source_t *source = pa_a2dp_ldac.a2dp_source;
+    uint8_t first_buf[TEST_MTU], second_buf[TEST_MTU];
+    struct stream_start start;
+    size_t encoded;
+    int reopened;
+    void *codec_data = open_stream(abr_loaded, ldac_eqmid, &start);
+
+    current_eqmid = abr_reached;
+    source->encode(0, first_buf, sizeof(first_buf), &encoded, NULL, &codec_data);
+    source->encode(0, second_buf, sizeof(second_buf), &encoded, NULL, &codec_data);
+    reopened = open_count == 2 ? opened_eqmid : -1;
     source->free(&codec_data);
 
-    return result;
+    return reopened;
 }
 
 static int failures;
@@ -234,6 +281,28 @@ int main(void) {
 
     s = start_stream(false, "auto");
     expect_int("ldac_eqmid=auto without ABR stays HQ", s.eqmid, LDACBT_EQMID_HQ);
+
+    /* ABR that fails to start cannot raise the quality either, so the stream
+     * runs at HQ as it does without the ABR library. */
+    abr_init_result = -1;
+    s = start_stream(true, NULL);
+    abr_init_result = 0;
+    expect_int("ABR that fails to start falls back to HQ", s.running_eqmid, LDACBT_EQMID_HQ);
+    expect_int("ABR that fails to start keeps HQ block size", (int) s.block_size, hq_block);
+
+    s = start_stream(true, NULL);
+    expect_int("working ABR runs at SQ until it steps up", s.running_eqmid, LDACBT_EQMID_SQ);
+
+    /* A re-opened encoder carries on at the quality ABR reached, instead of
+     * starting over from SQ. */
+    expect_int("re-open keeps the HQ that ABR reached",
+               reopen_after_abr(true, NULL, LDACBT_EQMID_HQ), LDACBT_EQMID_HQ);
+    expect_int("re-open keeps the MQ that ABR dropped to",
+               reopen_after_abr(true, NULL, LDACBT_EQMID_MQ), LDACBT_EQMID_MQ);
+    /* A fixed quality is re-opened as the user chose it. */
+    expect_int("ldac_eqmid=sq re-opens at SQ", reopen_after_abr(true, "sq", LDACBT_EQMID_SQ), LDACBT_EQMID_SQ);
+    expect_int("default without ABR re-opens at HQ",
+               reopen_after_abr(false, NULL, LDACBT_EQMID_HQ), LDACBT_EQMID_HQ);
 
     if (failures) {
         printf("%d check(s) failed\n", failures);

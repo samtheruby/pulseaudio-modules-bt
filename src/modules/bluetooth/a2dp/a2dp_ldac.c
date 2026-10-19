@@ -211,6 +211,13 @@ pa_ldac_encode(uint32_t timestamp, void *write_buf, size_t write_buf_size, size_
     if(PA_UNLIKELY(ldac_info->buf != write_buf && ldac_info->buf)){
         int ret;
         ldac_info->buf_index = 0;
+        /* Re-open at the quality ABR has reached, rather than starting over
+         * from the start quality. */
+        if (ldac_info->enable_abr) {
+            int eqmid = ldacBT_get_eqmid_func(ldac_info->hLdacBt);
+            if (eqmid >= LDACBT_EQMID_HQ && eqmid <= LDACBT_EQMID_MQ)
+                ldac_info->eqmid = eqmid;
+        }
         ldacBT_close_handle_func(ldac_info->hLdacBt);
         ret = ldacBT_init_handle_encode_func(ldac_info->hLdacBt,
                                              (int) ldac_info->mtu,
@@ -513,7 +520,14 @@ fail:
 fail1:
     ldac_ABR_free_handle_func(ldac_info->hLdacAbr);
     ldac_info->hLdacAbr = NULL;
-    ldac_info->enable_abr = false;
+    if (ldac_info->enable_abr) {
+        /* Without ABR nothing raises the quality from where adaptive bit
+         * rate starts it, so run at HQ as when the ABR library is missing. */
+        ldac_info->enable_abr = false;
+        ldac_info->eqmid = LDACBT_EQMID_HQ;
+        if (ldac_info->hLdacBt)
+            ldacBT_set_eqmid_func(ldac_info->hLdacBt, LDACBT_EQMID_HQ);
+    }
 };
 
 static size_t pa_ldac_handle_skipping(size_t bytes_to_send, void **codec_data) {
