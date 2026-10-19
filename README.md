@@ -115,6 +115,8 @@ sudo make install
 
 *Cmake A2DP codecs options*: `CODEC_APTX_FF`, `CODEC_APTX_HD_FF`, `CODEC_AAC_FDK`, `CODEC_LDAC`
 
+*Tests*: add `-DBUILD_TESTS=ON` to the `cmake` line, then run `ctest` in the build directory.
+
 #### Load Modules
 
 ```bash
@@ -164,7 +166,7 @@ Encoders configurations
 |ldac_eqmid|hq|LDAC High Quality|auto|
 ||sq|LDAC Standard Quality|
 ||mq|LDAC Mobile use Quality|
-||auto /abr|LDAC Adaptive Bit Rate|
+||auto /abr|LDAC Adaptive Bit Rate: starts at Standard Quality and rises to High Quality once the link is steady|
 |ldac_fmt|s16|16-bit signed (little endian)|auto|
 ||s24|24-bit signed|
 ||s32|32-bit signed|

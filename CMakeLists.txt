@@ -35,6 +35,7 @@ option(CODEC_LDAC "LDAC encoding, abr support using libldac" ON)
 option(FORCE_LARGEST_PA_VERSION "Build for largest available version( <= PulseAudio git master) of PulseAudio" OFF)
 option(OFONO_HEADSET "ofono HFP headset support" ON)
 option(NATIVE_HEADSET "native HSP headset support" ON)
+option(BUILD_TESTS "Build the unit tests (run them with ctest)" OFF)
 
 add_definitions(-DHAVE_CONFIG_H)
 add_definitions(-D_REENTRANT)
@@ -217,6 +218,18 @@ add_library(module-bluetooth-policy MODULE
 target_compile_definitions(module-bluetooth-policy PUBLIC PA_MODULE_NAME=module_bluetooth_policy)
 target_link_libraries(module-bluetooth-policy  ${MOD_LIBS})
 SET_TARGET_PROPERTIES(module-bluetooth-policy PROPERTIES PREFIX "")
+
+# Unit tests: the codec code is built against stubbed codec libraries
+if(${BUILD_TESTS} STREQUAL "ON" AND "${PA_A2DP_CODEC_LDAC}")
+    enable_testing()
+    add_executable(test-ldac-abr-start
+            ${PROJECT_SOURCE_DIR}/test/test-ldac-abr-start.c
+            ${MOD_BT_DIR}/a2dp/a2dp_ldac.c
+            )
+    target_link_libraries(test-ldac-abr-start ${MOD_LIBS})
+    set_target_properties(test-ldac-abr-start PROPERTIES BUILD_RPATH "${PulseAudio_CORE_LIBDIR}")
+    add_test(NAME ldac-abr-start COMMAND test-ldac-abr-start)
+endif()
 
 message(STATUS "CMAKE_C_FLAGS = " ${CMAKE_C_FLAGS})
 
