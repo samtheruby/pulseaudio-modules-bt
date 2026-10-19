@@ -23,6 +23,7 @@
  */
 
 #include <pulsecore/core.h>
+#include <pulsecore/dbus-util.h>
 
 #include "a2dp/a2dp-api.h"
 
@@ -188,7 +189,12 @@ bool pa_bluetooth_device_set_sep_setting_configuration(pa_bluetooth_device *d, b
 pa_bluetooth_stream_endpoint *pa_bluetooth_device_get_sep_by_codec_index(pa_bluetooth_device *d,
                                                                          pa_a2dp_codec_index_t codec_index);
 
-void pa_bluetooth_sep_set_configuration(pa_bluetooth_stream_endpoint *sep, pa_sample_spec default_sample_spec, void (*cb)(bool success, void *data), void *cb_data);
+/* Asks BlueZ to switch to sep's codec; cb runs with BlueZ's answer. Returns
+ * the call, for pa_bluetooth_sep_cancel_set_configuration, or NULL when no
+ * call was made (and cb will not run). */
+pa_dbus_pending *pa_bluetooth_sep_set_configuration(pa_bluetooth_stream_endpoint *sep, pa_sample_spec default_sample_spec, void (*cb)(bool success, void *data), void *cb_data);
+/* Cancels a codec switch whose answer is still due, so its cb never runs. */
+void pa_bluetooth_sep_cancel_set_configuration(pa_dbus_pending *call);
 
 pa_bluetooth_device* pa_bluetooth_discovery_get_device_by_path(pa_bluetooth_discovery *y, const char *path);
 pa_bluetooth_device* pa_bluetooth_discovery_get_device_by_address(pa_bluetooth_discovery *y, const char *remote, const char *local);

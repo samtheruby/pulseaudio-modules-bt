@@ -121,6 +121,8 @@ struct userdata {
     pa_bluetooth_discovery *discovery;
     pa_bluetooth_device *device;
     pa_bluetooth_transport *transport;
+    /* The codec switch still waiting for BlueZ's answer, if any. */
+    pa_dbus_pending *set_configuration_call;
     bool transport_acquired;
     bool stream_setup_done;
 
@@ -1279,7 +1281,8 @@ static int setup_transport(struct userdata *u) {
 
     if (u->sep && u->sep->a2dp_codec && t->a2dp_codec && u->sep->a2dp_codec != t->a2dp_codec) {
         pa_bluetooth_device_set_sep_setting_configuration(u->device, true);
-        pa_bluetooth_sep_set_configuration(u->sep, u->core->default_sample_spec, set_configuration_cb, u);
+        u->set_configuration_call =
+                pa_bluetooth_sep_set_configuration(u->sep, u->core->default_sample_spec, set_configuration_cb, u);
         return -EINPROGRESS;
     }
 
@@ -1988,6 +1991,9 @@ static void set_configuration_cb(bool success, void *data) {
 
     struct userdata *u = (struct userdata *) data;
 
+    /* The call is over, and bluez5-util has freed it. */
+    u->set_configuration_call = NULL;
+
     /* BlueZ closes the stream to reconfigure it. When that fails, it can
      * drop the whole connection and remove the stream endpoints this card
      * points to, so with no transport left the card is unloaded here and u
@@ -2538,6 +2544,16 @@ void pa__done(pa_module *m) {
 
     if (u->transport_microphone_gain_changed_slot)
         pa_hook_slot_free(u->transport_microphone_gain_changed_slot);
+
+    /* A codec switch BlueZ has not answered yet would call back into the
+     * freed userdata. Cancel it, and stop counting the device as connected
+     * for it, so a headset that has gone gets a fresh card when it returns.
+     * The hook slots are already freed, so this card is not told again. */
+    if (u->set_configuration_call) {
+        pa_bluetooth_sep_cancel_set_configuration(u->set_configuration_call);
+        u->set_configuration_call = NULL;
+        pa_bluetooth_device_set_sep_setting_configuration(u->device, false);
+    }
 
     if (u->a2dp_info.buffer)
         pa_xfree(u->a2dp_info.buffer);
